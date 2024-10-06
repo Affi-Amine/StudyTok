@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lottie/lottie.dart';
+
 import '../models/question.dart';
 import '../repositories/question_repository.dart';
 
@@ -15,6 +15,8 @@ class _FYPScreenState extends ConsumerState<FYPScreen> {
   int? _selectedAnswerIndex;
   final PageController _pageController = PageController();
   int _currentIndex = 0;
+  bool _isAnswerVerified = false;
+  bool _isCorrectAnswer = false;
 
   void _selectAnswer(int index) {
     setState(() {
@@ -25,8 +27,12 @@ class _FYPScreenState extends ConsumerState<FYPScreen> {
   void _verifyAnswer(Question question) {
     if (_selectedAnswerIndex == null) return;
 
-    bool isCorrect = _selectedAnswerIndex == question.correctOptionIndex;
-    _showResultOverlay(isCorrect);
+    setState(() {
+      _isCorrectAnswer = _selectedAnswerIndex == question.correctOptionIndex;
+      _isAnswerVerified = true;
+    });
+
+    _showResultOverlay(_isCorrectAnswer);
   }
 
   void _showResultOverlay(bool isCorrect) {
@@ -36,11 +42,13 @@ class _FYPScreenState extends ConsumerState<FYPScreen> {
       pageBuilder: (_, __, ___) => Container(
         color: Colors.black.withOpacity(0.5),
         child: Center(
-          child: Lottie.asset(
-            isCorrect
-                ? 'assets/correct_animation.json'
-                : 'assets/incorrect_animation.json',
-            repeat: false,
+          child: Text(
+            isCorrect ? 'Correct!' : 'Incorrect!',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
@@ -48,7 +56,14 @@ class _FYPScreenState extends ConsumerState<FYPScreen> {
 
     Future.delayed(Duration(seconds: 2), () {
       Navigator.of(context).pop();
+      _highlightAnswer();
+    });
+  }
+
+  void _highlightAnswer() {
+    Future.delayed(Duration(seconds: 3), () {
       setState(() {
+        _isAnswerVerified = false;
         _selectedAnswerIndex = null;
       });
     });
@@ -57,13 +72,12 @@ class _FYPScreenState extends ConsumerState<FYPScreen> {
   @override
   Widget build(BuildContext context) {
     final questions = ref.watch(questionRepositoryProvider);
-
     if (questions.isEmpty) {
       return Center(child: CircularProgressIndicator()); // Loading state
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
       body: PageView.builder(
         scrollDirection: Axis.vertical,
         controller: _pageController,
@@ -72,6 +86,7 @@ class _FYPScreenState extends ConsumerState<FYPScreen> {
           setState(() {
             _currentIndex = index;
             _selectedAnswerIndex = null;
+            _isAnswerVerified = false;
           });
         },
         itemBuilder: (context, index) {
@@ -84,111 +99,98 @@ class _FYPScreenState extends ConsumerState<FYPScreen> {
 
   Widget _buildQuestionPage(Question question, List<Question> questions) {
     return SafeArea(
-      child: Container(
-        height: MediaQuery.of(context).size.height, // Full-screen height
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Text(
-                question.text,
-                style: const TextStyle(
-                  fontSize: 24,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
+            // Category tags (Top part) with horizontal scrolling
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildCategoryTag("Génétique humaine"),
+                  _buildCategoryTag("Bac Math"),
+                  _buildCategoryTag("Principale"),
+                  _buildCategoryTag("2024"),
+                  // Add more tags if needed...
+                ],
               ),
             ),
+            SizedBox(height: 20),
+
+            // Question Text
+            Text(
+              question.text,
+              style: const TextStyle(
+                fontSize: 22,
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20),
+
+            // Answer Options
             ...question.options.asMap().entries.map((entry) {
               int idx = entry.key;
               String option = entry.value;
+
+              // Apply the color change based on whether the answer is verified and correct/incorrect
+              Color buttonColor;
+              if (_isAnswerVerified && idx == _selectedAnswerIndex) {
+                buttonColor = _isCorrectAnswer ? Colors.green : Colors.red;
+              } else {
+                buttonColor = Colors.green.withOpacity(0.3);
+              }
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: ElevatedButton(
                   onPressed: () => _selectAnswer(idx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedAnswerIndex == idx
-                        ? Colors.blue.withOpacity(0.3)
-                        : Colors.grey[800],
-                    foregroundColor: Colors.white,
+                    backgroundColor: buttonColor,
+                    foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                     padding: EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: Row(
-                    children: [
-                      if (_selectedAnswerIndex == idx)
-                        Icon(Icons.check, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text(option, style: TextStyle(fontSize: 16)),
-                    ],
-                  ),
+                  child: Text(option, style: TextStyle(fontSize: 16)),
                 ),
               );
             }).toList(),
+
             SizedBox(height: 20),
+
+            // Reveal Answer Button
             ElevatedButton(
               onPressed: () => _verifyAnswer(question),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
                 padding: EdgeInsets.symmetric(vertical: 16),
               ),
-              child: Text('Check Answer', style: TextStyle(fontSize: 18)),
-            ),
-            SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_upward, color: Colors.white),
-                  onPressed: _currentIndex > 0
-                      ? () {
-                          _pageController.previousPage(
-                            duration: Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                          setState(() {
-                            _currentIndex--;
-                            _selectedAnswerIndex = null;
-                          });
-                        }
-                      : null,
-                ),
-                IconButton(
-                  icon: Icon(Icons.favorite_border, color: Colors.white),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.bookmark_border, color: Colors.white),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.arrow_downward, color: Colors.white),
-                  onPressed: _currentIndex < questions.length - 1
-                      ? () {
-                          _pageController.nextPage(
-                            duration: Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                          setState(() {
-                            _currentIndex++;
-                            _selectedAnswerIndex = null;
-                          });
-                        }
-                      : null,
-                ),
-              ],
+              child: Text('Reveal Answer', style: TextStyle(fontSize: 18)),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoryTag(String tag) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      margin: EdgeInsets.only(right: 5),
+      decoration: BoxDecoration(
+        color: Colors.greenAccent,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(tag, style: TextStyle(color: Colors.black)),
     );
   }
 }
