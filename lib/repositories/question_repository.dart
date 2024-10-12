@@ -10,71 +10,74 @@ class QuestionRepository extends _$QuestionRepository {
       id: '1',
       text: 'What is the capital of France?',
       options: ['London', 'Berlin', 'Paris', 'Madrid'],
-      correctOptionIndex: 2,
+      correctOptionIndexes: [2], // Paris
     ),
     Question(
       id: '2',
       text: 'Which planet is known as the Red Planet?',
       options: ['Venus', 'Mars', 'Jupiter', 'Saturn'],
-      correctOptionIndex: 1,
+      correctOptionIndexes: [1], // Mars
     ),
     Question(
       id: '3',
       text: 'Who wrote "Romeo and Juliet"?',
       options: ['Charles Dickens', 'William Shakespeare', 'Jane Austen', 'Mark Twain'],
-      correctOptionIndex: 1,
+      correctOptionIndexes: [1], // William Shakespeare
     ),
     Question(
       id: '4',
       text: 'What is the largest ocean on Earth?',
       options: ['Atlantic Ocean', 'Indian Ocean', 'Arctic Ocean', 'Pacific Ocean'],
-      correctOptionIndex: 3,
+      correctOptionIndexes: [3], // Pacific Ocean
     ),
     Question(
       id: '5',
       text: 'What is the chemical symbol for gold?',
       options: ['Au', 'Ag', 'Fe', 'Cu'],
-      correctOptionIndex: 0,
+      correctOptionIndexes: [0], // Au
     ),
     Question(
       id: '6',
       text: 'Which country is home to the kangaroo?',
       options: ['New Zealand', 'South Africa', 'Australia', 'Brazil'],
-      correctOptionIndex: 2,
+      correctOptionIndexes: [2], // Australia
     ),
     Question(
       id: '7',
       text: 'What is the largest planet in our solar system?',
       options: ['Earth', 'Mars', 'Jupiter', 'Saturn'],
-      correctOptionIndex: 2,
+      correctOptionIndexes: [2], // Jupiter
     ),
     Question(
       id: '8',
       text: 'Who painted the Mona Lisa?',
       options: ['Vincent van Gogh', 'Pablo Picasso', 'Leonardo da Vinci', 'Michelangelo'],
-      correctOptionIndex: 2,
+      correctOptionIndexes: [2], // Leonardo da Vinci
     ),
     Question(
       id: '9',
       text: 'What is the main ingredient in guacamole?',
       options: ['Tomato', 'Avocado', 'Onion', 'Lime'],
-      correctOptionIndex: 1,
+      correctOptionIndexes: [1], // Avocado
     ),
     Question(
       id: '10',
       text: 'Which element has the chemical symbol "O"?',
       options: ['Gold', 'Silver', 'Oxygen', 'Carbon'],
-      correctOptionIndex: 2,
+      correctOptionIndexes: [2], // Oxygen
     ),
   ];
 
+  // Initialize the state with the default list of questions
   @override
   List<Question> build() => _questions;
 
+  // Retrieve a specific question by ID
   Question getQuestionById(String id) {
     return _questions.firstWhere((q) => q.id == id);
   }
 
+  // Toggle 'like' status for a specific question
   void toggleLike(String id) {
     state = [
       for (final question in state)
@@ -85,6 +88,7 @@ class QuestionRepository extends _$QuestionRepository {
     ];
   }
 
+  // Toggle 'save' status for a specific question
   void toggleSave(String id) {
     state = [
       for (final question in state)

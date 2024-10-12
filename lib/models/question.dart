@@ -9,7 +9,7 @@ class Question with _$Question {
     required String id,
     required String text,
     required List<String> options,
-    required int correctOptionIndex,
+    required List<int> correctOptionIndexes, // <-- Updated here
     @Default(false) bool isLiked,
     @Default(false) bool isSaved,
   }) = _Question;

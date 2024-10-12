@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'screens/fyp_screen.dart';
 import 'screens/leaderboard_screen.dart';
 import 'screens/profile_screen.dart';
 
 void main() {
-  runApp(ProviderScope(child: MyApp())); // Wrapping with ProviderScope
+  runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -14,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Curved NavBar Demo',
+      title: 'Custom NavBar Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -33,32 +32,80 @@ class _HomePageState extends State<HomePage> {
 
   // Define your screens
   final List<Widget> _screens = [
-    FYPScreen(), // Default home page (index 0)
-    Leaderboard(), // List page (index 1)
-    Profile(), // Compare page (index 2)
+    FYPScreen(),
+    Leaderboard(),
+    Profile(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: _screens[_page], // Display the screen corresponding to the selected tab
-      bottomNavigationBar: CurvedNavigationBar(
-        backgroundColor: Colors.white, // Changed to white
-        color: Colors.lightGreen, // NavBar color (matching your tags section color)
-        buttonBackgroundColor: Colors.white, // Color of the button when selected
-        height: 60, // Adjust height for better appearance
-        items: <Widget>[
-          Icon(Icons.add, size: 30, color: Colors.black), // Icon for home
-          Icon(Icons.list, size: 30, color: Colors.black), // Icon for list
-          Icon(Icons.compare_arrows, size: 30, color: Colors.black), // Icon for compare
-        ],
-        onTap: (index) {
-          setState(() {
-            _page = index; // Change the page index on button tap
-          });
-        },
+      body: _screens[
+          _page], // Display the screen corresponding to the selected tab
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Colors.black, width: 2), // Top divider
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 40), // Adjust padding to limit divider width
+        child: BottomNavigationBar(
+          currentIndex: _page,
+          onTap: (index) {
+            setState(() {
+              _page = index; // Change the page index on button tap
+            });
+          },
+          items: [
+            BottomNavigationBarItem(
+              icon: _buildIconWithUnderline(Icons.home_outlined, 0),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildIconWithUnderline(Icons.emoji_events_outlined, 1),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildIconWithUnderline(Icons.person_outline, 2),
+              label: '',
+            ),
+          ],
+          backgroundColor:
+              Colors.white, // Make the background of the navbar transparent
+          type: BottomNavigationBarType
+              .fixed, // Prevents shifting when selecting items
+          selectedItemColor: Colors.black, // Color for the active icon
+          unselectedItemColor: Colors.grey, // Color for the inactive icons
+          showSelectedLabels: false, // Hide labels
+          showUnselectedLabels: false, // Hide labels
+          elevation: 0, // Remove shadow below the navbar
+        ),
       ),
+    );
+  }
+
+  // Helper method to build icons with underline for the active icon
+  Widget _buildIconWithUnderline(IconData icon, int index) {
+    bool isSelected = _page == index;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 35, // Increased icon size
+          color:
+              isSelected ? Colors.black : Colors.grey, // Active/inactive color
+        ),
+        if (isSelected)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            height: 2,
+            width: 25,
+            color: Colors.black, // Black underline for the selected icon
+          ),
+      ],
     );
   }
 }

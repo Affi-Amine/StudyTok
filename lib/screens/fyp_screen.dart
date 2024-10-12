@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../models/question.dart';
 import '../repositories/question_repository.dart';
 
@@ -12,39 +11,87 @@ class FYPScreen extends ConsumerStatefulWidget {
 }
 
 class _FYPScreenState extends ConsumerState<FYPScreen> {
-  int? _selectedAnswerIndex;
+  List<int> _selectedAnswerIndexes = []; // Track selected answers
   final PageController _pageController = PageController();
   int _currentIndex = 0;
   bool _isAnswerVerified = false;
   bool _isCorrectAnswer = false;
+  List<int> _correctIndexes = []; // Track correct answers
 
+  // Toggle selected answers (multi-select)
   void _selectAnswer(int index) {
     setState(() {
-      _selectedAnswerIndex = index;
+      if (_selectedAnswerIndexes.contains(index)) {
+        _selectedAnswerIndexes.remove(index); // Deselect if already selected
+      } else {
+        _selectedAnswerIndexes.add(index); // Select the option
+      }
     });
   }
 
+  // Verify the answers and set their correctness
   void _verifyAnswer(Question question) {
-    if (_selectedAnswerIndex == null) return;
+    if (_selectedAnswerIndexes.isEmpty) {
+      _showMessage('Please select at least one answer.');
+      return;
+    }
+
+    // Check if all selected answers are correct and no extra answers were selected
+    final allCorrect = Set.from(_selectedAnswerIndexes)
+            .containsAll(question.correctOptionIndexes) &&
+        _selectedAnswerIndexes.length == question.correctOptionIndexes.length;
 
     setState(() {
-      _isCorrectAnswer = _selectedAnswerIndex == question.correctOptionIndex;
       _isAnswerVerified = true;
+      _isCorrectAnswer = allCorrect;
+      _correctIndexes = question.correctOptionIndexes; // Store correct answers
     });
 
-    _showResultOverlay(_isCorrectAnswer);
+    _showResultOverlay(allCorrect);
   }
 
+  // Show message using Snackbar
+  void _showMessage(String message) {
+    final snackBar = SnackBar(content: Text(message));
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  // Display overlay for answer result (Correct/Incorrect)
   void _showResultOverlay(bool isCorrect) {
+  // Directly move to the next question after a short delay
+  Future.delayed(const Duration(seconds: 2), () {
+    _nextQuestion();
+  });
+}
+
+  // Move to the next question
+  void _nextQuestion() {
+    setState(() {
+      _isAnswerVerified = false;
+      _selectedAnswerIndexes = [];
+    });
+
+    if (_currentIndex < ref.read(questionRepositoryProvider).length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeIn,
+      );
+    } else {
+      _showEndQuizMessage();
+    }
+  }
+
+  // Show message when quiz is completed
+  void _showEndQuizMessage() {
     showGeneralDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       pageBuilder: (_, __, ___) => Container(
         color: Colors.black.withOpacity(0.5),
         child: Center(
           child: Text(
-            isCorrect ? 'Correct!' : 'Incorrect!',
-            style: TextStyle(
+            'Quiz Completed!',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 36,
               fontWeight: FontWeight.bold,
@@ -53,128 +100,38 @@ class _FYPScreenState extends ConsumerState<FYPScreen> {
         ),
       ),
     );
-
-    Future.delayed(Duration(seconds: 2), () {
-      Navigator.of(context).pop();
-      _highlightAnswer();
-    });
-  }
-
-  void _highlightAnswer() {
-    Future.delayed(Duration(seconds: 3), () {
-      setState(() {
-        _isAnswerVerified = false;
-        _selectedAnswerIndex = null;
-      });
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final questions = ref.watch(questionRepositoryProvider);
     if (questions.isEmpty) {
-      return Center(child: CircularProgressIndicator()); // Loading state
+      return const Center(child: CircularProgressIndicator()); // Loading state
     }
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: PageView.builder(
-        scrollDirection: Axis.vertical,
-        controller: _pageController,
-        itemCount: questions.length,
-        onPageChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-            _selectedAnswerIndex = null;
-            _isAnswerVerified = false;
-          });
-        },
-        itemBuilder: (context, index) {
-          final question = questions[index];
-          return _buildQuestionPage(question, questions);
-        },
-      ),
-    );
-  }
-
-  Widget _buildQuestionPage(Question question, List<Question> questions) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return DefaultTabController(
+      length: 2, // Two tabs: For You and Library
+      child: Scaffold(
+        body: Column(
           children: [
-            // Category tags (Top part) with horizontal scrolling
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildCategoryTag("Génétique humaine"),
-                  _buildCategoryTag("Bac Math"),
-                  _buildCategoryTag("Principale"),
-                  _buildCategoryTag("2024"),
-                  // Add more tags if needed...
+            Padding(
+              padding: const EdgeInsets.only(top: 50.0), // Top padding
+              child: TabBar(
+                labelColor: Colors.black,
+                indicatorColor: Colors.black,
+                tabs: const [
+                  Tab(text: 'For You'),
+                  Tab(text: 'Library'),
                 ],
               ),
             ),
-            SizedBox(height: 20),
-
-            // Question Text
-            Text(
-              question.text,
-              style: const TextStyle(
-                fontSize: 22,
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildForYouTab(questions), // "For You" Tab
+                  _buildLibraryTab(), // "Library" Tab
+                ],
               ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 20),
-
-            // Answer Options
-            ...question.options.asMap().entries.map((entry) {
-              int idx = entry.key;
-              String option = entry.value;
-
-              // Apply the color change based on whether the answer is verified and correct/incorrect
-              Color buttonColor;
-              if (_isAnswerVerified && idx == _selectedAnswerIndex) {
-                buttonColor = _isCorrectAnswer ? Colors.green : Colors.red;
-              } else {
-                buttonColor = Colors.green.withOpacity(0.3);
-              }
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ElevatedButton(
-                  onPressed: () => _selectAnswer(idx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: buttonColor,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: Text(option, style: TextStyle(fontSize: 16)),
-                ),
-              );
-            }).toList(),
-
-            SizedBox(height: 20),
-
-            // Reveal Answer Button
-            ElevatedButton(
-              onPressed: () => _verifyAnswer(question),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: Text('Reveal Answer', style: TextStyle(fontSize: 18)),
             ),
           ],
         ),
@@ -182,15 +139,208 @@ class _FYPScreenState extends ConsumerState<FYPScreen> {
     );
   }
 
+  Widget _buildForYouTab(List<Question> questions) {
+    return PageView.builder(
+      scrollDirection: Axis.vertical,
+      controller: _pageController,
+      itemCount: questions.length,
+      onPageChanged: (index) {
+        setState(() {
+          _currentIndex = index;
+          _selectedAnswerIndexes = [];
+          _isAnswerVerified = false;
+        });
+      },
+      itemBuilder: (context, index) {
+        final question = questions[index];
+        return _buildQuestionPage(question);
+      },
+    );
+  }
+
+  Widget _buildLibraryTab() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final questions = ref.watch(questionRepositoryProvider);
+        final savedQuestions = questions.where((q) => q.isSaved).toList();
+
+        if (savedQuestions.isEmpty) {
+          return const Center(
+            child: Text(
+              'No saved questions yet!',
+              style: TextStyle(fontSize: 20, color: Colors.black),
+            ),
+          );
+        }
+
+        return PageView.builder(
+          scrollDirection: Axis.vertical,
+          itemCount: savedQuestions.length,
+          itemBuilder: (context, index) {
+            final question = savedQuestions[index];
+            return _buildQuestionPage(question);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildQuestionPage(Question question) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildCategoryTags(),
+            const SizedBox(height: 20),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Text(
+                  question.text,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ..._buildAnswerOptions(question),
+            const SizedBox(height: 40),
+            _buildRevealButton(question),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryTags() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildCategoryTag("Génétique humaine"),
+          _buildCategoryTag("Bac Math"),
+          _buildCategoryTag("Principale"),
+          _buildCategoryTag("2024"),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCategoryTag(String tag) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      margin: EdgeInsets.only(right: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
-        color: Colors.greenAccent,
+        color: Colors.blue,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(tag, style: TextStyle(color: Colors.black)),
+      child:
+          Text(tag, style: const TextStyle(color: Colors.white, fontSize: 14)),
+    );
+  }
+
+  List<Widget> _buildAnswerOptions(Question question) {
+    final List<String> optionLabels = ['A.', 'B.', 'C.', 'D.'];
+
+    return question.options.asMap().entries.map((entry) {
+      final idx = entry.key;
+      final option = entry.value;
+
+      // Determine border color based on verification state
+      Color borderColor;
+      if (_isAnswerVerified) {
+        if (_correctIndexes.contains(idx)) {
+          borderColor = Colors.green; // Correct answer
+        } else if (_selectedAnswerIndexes.contains(idx)) {
+          borderColor = Colors.red; // Incorrect answer
+        } else {
+          borderColor = Colors.transparent; // Unselected
+        }
+      } else {
+        borderColor = _selectedAnswerIndexes.contains(idx)
+            ? Colors.blue // Selected but not verified yet
+            : Colors.transparent;
+      }
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              optionLabels[idx],
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _selectAnswer(idx), // Select or deselect answer
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor, width: 2),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: Text(option, style: const TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildRevealButton(Question question) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Align(
+          alignment: Alignment.center,
+          child: ElevatedButton(
+            onPressed: () => _verifyAnswer(question),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+            ),
+            child: const Text('REVEAL',
+                style: TextStyle(fontSize: 16, color: Colors.white)),
+          ),
+        ),
+        Positioned(
+          right: 16,
+          child: Consumer(
+            builder: (context, ref, child) {
+              final isSaved = question.isSaved;
+              return IconButton(
+                onPressed: () => ref
+                    .read(questionRepositoryProvider.notifier)
+                    .toggleSave(question.id),
+                icon: Icon(
+                  isSaved ? Icons.bookmark : Icons.bookmark_border,
+                  color: isSaved ? Colors.blue : Colors.black,
+                  size: 30,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

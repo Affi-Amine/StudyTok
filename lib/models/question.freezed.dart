@@ -23,7 +23,8 @@ mixin _$Question {
   String get id => throw _privateConstructorUsedError;
   String get text => throw _privateConstructorUsedError;
   List<String> get options => throw _privateConstructorUsedError;
-  int get correctOptionIndex => throw _privateConstructorUsedError;
+  List<int> get correctOptionIndexes =>
+      throw _privateConstructorUsedError; // <-- Updated here
   bool get isLiked => throw _privateConstructorUsedError;
   bool get isSaved => throw _privateConstructorUsedError;
 
@@ -46,7 +47,7 @@ abstract class $QuestionCopyWith<$Res> {
       {String id,
       String text,
       List<String> options,
-      int correctOptionIndex,
+      List<int> correctOptionIndexes,
       bool isLiked,
       bool isSaved});
 }
@@ -69,7 +70,7 @@ class _$QuestionCopyWithImpl<$Res, $Val extends Question>
     Object? id = null,
     Object? text = null,
     Object? options = null,
-    Object? correctOptionIndex = null,
+    Object? correctOptionIndexes = null,
     Object? isLiked = null,
     Object? isSaved = null,
   }) {
@@ -86,10 +87,10 @@ class _$QuestionCopyWithImpl<$Res, $Val extends Question>
           ? _value.options
           : options // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      correctOptionIndex: null == correctOptionIndex
-          ? _value.correctOptionIndex
-          : correctOptionIndex // ignore: cast_nullable_to_non_nullable
-              as int,
+      correctOptionIndexes: null == correctOptionIndexes
+          ? _value.correctOptionIndexes
+          : correctOptionIndexes // ignore: cast_nullable_to_non_nullable
+              as List<int>,
       isLiked: null == isLiked
           ? _value.isLiked
           : isLiked // ignore: cast_nullable_to_non_nullable
@@ -114,7 +115,7 @@ abstract class _$$QuestionImplCopyWith<$Res>
       {String id,
       String text,
       List<String> options,
-      int correctOptionIndex,
+      List<int> correctOptionIndexes,
       bool isLiked,
       bool isSaved});
 }
@@ -135,7 +136,7 @@ class __$$QuestionImplCopyWithImpl<$Res>
     Object? id = null,
     Object? text = null,
     Object? options = null,
-    Object? correctOptionIndex = null,
+    Object? correctOptionIndexes = null,
     Object? isLiked = null,
     Object? isSaved = null,
   }) {
@@ -152,10 +153,10 @@ class __$$QuestionImplCopyWithImpl<$Res>
           ? _value._options
           : options // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      correctOptionIndex: null == correctOptionIndex
-          ? _value.correctOptionIndex
-          : correctOptionIndex // ignore: cast_nullable_to_non_nullable
-              as int,
+      correctOptionIndexes: null == correctOptionIndexes
+          ? _value._correctOptionIndexes
+          : correctOptionIndexes // ignore: cast_nullable_to_non_nullable
+              as List<int>,
       isLiked: null == isLiked
           ? _value.isLiked
           : isLiked // ignore: cast_nullable_to_non_nullable
@@ -175,10 +176,11 @@ class _$QuestionImpl implements _Question {
       {required this.id,
       required this.text,
       required final List<String> options,
-      required this.correctOptionIndex,
+      required final List<int> correctOptionIndexes,
       this.isLiked = false,
       this.isSaved = false})
-      : _options = options;
+      : _options = options,
+        _correctOptionIndexes = correctOptionIndexes;
 
   factory _$QuestionImpl.fromJson(Map<String, dynamic> json) =>
       _$$QuestionImplFromJson(json);
@@ -195,8 +197,16 @@ class _$QuestionImpl implements _Question {
     return EqualUnmodifiableListView(_options);
   }
 
+  final List<int> _correctOptionIndexes;
   @override
-  final int correctOptionIndex;
+  List<int> get correctOptionIndexes {
+    if (_correctOptionIndexes is EqualUnmodifiableListView)
+      return _correctOptionIndexes;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_correctOptionIndexes);
+  }
+
+// <-- Updated here
   @override
   @JsonKey()
   final bool isLiked;
@@ -206,7 +216,7 @@ class _$QuestionImpl implements _Question {
 
   @override
   String toString() {
-    return 'Question(id: $id, text: $text, options: $options, correctOptionIndex: $correctOptionIndex, isLiked: $isLiked, isSaved: $isSaved)';
+    return 'Question(id: $id, text: $text, options: $options, correctOptionIndexes: $correctOptionIndexes, isLiked: $isLiked, isSaved: $isSaved)';
   }
 
   @override
@@ -217,8 +227,8 @@ class _$QuestionImpl implements _Question {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.text, text) || other.text == text) &&
             const DeepCollectionEquality().equals(other._options, _options) &&
-            (identical(other.correctOptionIndex, correctOptionIndex) ||
-                other.correctOptionIndex == correctOptionIndex) &&
+            const DeepCollectionEquality()
+                .equals(other._correctOptionIndexes, _correctOptionIndexes) &&
             (identical(other.isLiked, isLiked) || other.isLiked == isLiked) &&
             (identical(other.isSaved, isSaved) || other.isSaved == isSaved));
   }
@@ -230,7 +240,7 @@ class _$QuestionImpl implements _Question {
       id,
       text,
       const DeepCollectionEquality().hash(_options),
-      correctOptionIndex,
+      const DeepCollectionEquality().hash(_correctOptionIndexes),
       isLiked,
       isSaved);
 
@@ -255,7 +265,7 @@ abstract class _Question implements Question {
       {required final String id,
       required final String text,
       required final List<String> options,
-      required final int correctOptionIndex,
+      required final List<int> correctOptionIndexes,
       final bool isLiked,
       final bool isSaved}) = _$QuestionImpl;
 
@@ -269,7 +279,7 @@ abstract class _Question implements Question {
   @override
   List<String> get options;
   @override
-  int get correctOptionIndex;
+  List<int> get correctOptionIndexes; // <-- Updated here
   @override
   bool get isLiked;
   @override
